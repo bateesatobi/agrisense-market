@@ -9,7 +9,9 @@ import type {
   User,
 } from '../types';
 
-const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') || 'http://147.93.116.6:8090';
+const API_URL =
+  (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ||
+  'https://ai.busitema.ac.ug/agro';
 
 const TOKEN_KEY = 'agrisense_market_token';
 const ADMIN_TOKEN_KEY = 'agrisense_market_admin_token';
