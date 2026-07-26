@@ -38,6 +38,22 @@ body {
   line-height: 1.5;
 }
 
+.swal-login-track {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: #e8f0ea;
+  overflow: hidden;
+}
+
+.swal-login-bar {
+  height: 100%;
+  width: 0%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #1b5e20, #43a047);
+  transition: width 0.35s ease;
+}
+
 a {
   color: inherit;
   text-decoration: none;

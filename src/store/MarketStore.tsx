@@ -49,7 +49,11 @@ type MarketContextValue = {
     password: string;
   }) => Promise<string | null>;
   logoutCustomer: () => void;
-  loginAdmin: (email: string, password: string) => Promise<string | null>;
+  loginAdmin: (
+    email: string,
+    password: string,
+    onProgress?: (percent: number, status: string) => void,
+  ) => Promise<string | null>;
   logoutAdmin: () => void;
   placeOrder: (payload: {
     deliveryAddress: string;
@@ -244,16 +248,24 @@ export function MarketProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loginAdmin = useCallback(
-    async (email: string, password: string) => {
+    async (
+      email: string,
+      password: string,
+      onProgress?: (percent: number, status: string) => void,
+    ) => {
       try {
+        onProgress?.(15, 'Checking credentials…');
         const token = await marketApi.login(email, password);
+        onProgress?.(45, 'Verifying admin access…');
         const me = await marketApi.me(token);
         if (me.role !== 'admin') {
           return 'Not an admin account.';
         }
+        onProgress?.(70, 'Loading marketplace data…');
         setAdminToken(token);
         setAdmin(me);
         await refreshAdminData(token);
+        onProgress?.(100, 'Ready');
         return null;
       } catch (e) {
         return e instanceof Error ? e.message : 'Admin login failed.';

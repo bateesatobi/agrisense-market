@@ -520,6 +520,37 @@
   font-weight: 700;
 }
 
+.amz-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0.35rem 0 0.15rem;
+}
+
+.amz-delivery-pill {
+  display: inline-flex;
+  align-self: flex-start;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.amz-delivery-pill.is-free {
+  background: #e7f6ec;
+  color: #067d3a;
+}
+
+.amz-delivery-pill.is-paid {
+  background: #fff4e5;
+  color: #9a5b00;
+}
+
+.amz-delivery-period {
+  color: var(--amz-muted);
+  font-size: 0.78rem;
+}
+
 .amz-ship {
   color: var(--amz-muted);
   font-size: 0.8rem;

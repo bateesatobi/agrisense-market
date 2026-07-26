@@ -1,18 +1,41 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useMarket } from '../../store/MarketStore';
+import {
+  closeLoginProgress,
+  openLoginProgress,
+  setLoginProgress,
+  swalError,
+  swalSuccess,
+} from '../../utils/swal';
 
 export function AdminLoginPage() {
   const { admin, loginAdmin } = useMarket();
   const [email, setEmail] = useState('admin@agrisense.ug');
   const [password, setPassword] = useState('admin123');
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  if (admin) return <Navigate to="/admin" replace />;
+  if (admin && !busy) return <Navigate to="/admin" replace />;
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError(await loginAdmin(email, password));
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    openLoginProgress();
+    const err = await loginAdmin(email, password, setLoginProgress);
+    if (err) {
+      closeLoginProgress();
+      setError(err);
+      await swalError('Sign-in failed', err);
+      setBusy(false);
+      return;
+    }
+    setLoginProgress(100, 'Ready');
+    closeLoginProgress();
+    await swalSuccess('Welcome back', 'Admin console is ready.');
+    setBusy(false);
   };
 
   return (
@@ -31,7 +54,12 @@ export function AdminLoginPage() {
         {error && <div className="alert alert-error">{error}</div>}
         <div className="field">
           <label>Email</label>
-          <input value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={busy}
+            autoComplete="username"
+          />
         </div>
         <div className="field">
           <label>Password</label>
@@ -39,10 +67,17 @@ export function AdminLoginPage() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            disabled={busy}
+            autoComplete="current-password"
           />
         </div>
-        <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
-          Enter console
+        <button
+          type="submit"
+          className="btn btn-primary"
+          style={{ width: '100%' }}
+          disabled={busy}
+        >
+          {busy ? 'Signing in…' : 'Enter console'}
         </button>
         <p className="muted" style={{ fontSize: 13, marginTop: 10 }}>
           Demo: admin@agrisense.ug / admin123

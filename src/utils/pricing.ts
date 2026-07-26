@@ -29,6 +29,22 @@ export function getPriceDisplay(
   };
 }
 
+/** Selling price + discount % → list (compare-at) price. */
+export function listPriceFromDiscount(priceUgx: number, discountPercent: number): number {
+  const pct = Math.min(99, Math.max(0, Math.round(discountPercent)));
+  if (pct <= 0) return Math.round(priceUgx);
+  const list = Math.round(priceUgx / (1 - pct / 100));
+  return list > priceUgx ? list : Math.round(priceUgx) + 1;
+}
+
+/** Recover discount % from selling + list price (for editing). */
+export function discountPercentFromPrices(
+  priceUgx: number,
+  compareAtPriceUgx?: number | null,
+): number {
+  return getPriceDisplay(priceUgx, compareAtPriceUgx).percentOff;
+}
+
 /** Parse mobile string prices like "95,000" */
 export function parsePriceString(price: string): number {
   const n = Number.parseFloat(String(price).replace(/,/g, '').replace(/[^\d.]/g, ''));

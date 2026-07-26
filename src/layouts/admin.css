@@ -322,10 +322,126 @@
   flex-wrap: wrap;
 }
 
+.admin-drawer-root {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+}
+
+.admin-drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(10, 20, 12, 0.45);
+  cursor: pointer;
+  animation: admin-drawer-fade 0.18s ease-out;
+}
+
+.admin-drawer-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(480px, 100%);
+  background: #fff;
+  border-left: 1px solid #d7e4da;
+  box-shadow: -16px 0 48px rgba(12, 24, 16, 0.18);
+  display: flex;
+  flex-direction: column;
+  animation: admin-drawer-slide 0.22s ease-out;
+}
+
+.admin-drawer-panel.wide {
+  width: min(640px, 100%);
+}
+
+.admin-drawer-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 1rem 1.15rem;
+  border-bottom: 1px solid #e7efe8;
+  flex-shrink: 0;
+}
+
+.admin-drawer-head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.admin-drawer-body {
+  flex: 1;
+  overflow: auto;
+  padding: 1rem 1.15rem 1.25rem;
+}
+
+.admin-drawer-footer {
+  flex-shrink: 0;
+  padding: 0.9rem 1.15rem;
+  border-top: 1px solid #e7efe8;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  background: #fafcfa;
+}
+
+.admin-drawer-body .admin-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 560px) {
+  .admin-drawer-body .admin-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@keyframes admin-drawer-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes admin-drawer-slide {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
 .admin-detail-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px 16px;
+}
+
+.admin-detail-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-detail-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+}
+
+.admin-detail-gallery img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #d7e4da;
+  background: #f3f7f3;
 }
 
 .admin-detail-grid .full {

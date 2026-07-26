@@ -1,11 +1,13 @@
 import { Link, Navigate, Outlet, useLocation } from 'react-router-dom';
 import {
   Boxes,
+  Folders,
   HandCoins,
   LayoutDashboard,
   LogOut,
   Package,
   Receipt,
+  Ruler,
   Users,
   Wallet,
 } from 'lucide-react';
@@ -20,6 +22,14 @@ const TITLES: Record<string, { title: string; subtitle: string }> = {
   '/admin/products': {
     title: 'Catalogue',
     subtitle: 'Manage produce and farm inputs',
+  },
+  '/admin/categories': {
+    title: 'Categories',
+    subtitle: 'Produce and input category catalogue',
+  },
+  '/admin/units': {
+    title: 'Units',
+    subtitle: 'Sell-by units for products',
   },
   '/admin/orders': {
     title: 'Fulfilment',
@@ -62,6 +72,18 @@ export function AdminLayout() {
             className={pathname.startsWith('/admin/products') ? 'active' : undefined}
           >
             <Package size={18} /> Products
+          </Link>
+          <Link
+            to="/admin/categories"
+            className={pathname.startsWith('/admin/categories') ? 'active' : undefined}
+          >
+            <Folders size={18} /> Categories
+          </Link>
+          <Link
+            to="/admin/units"
+            className={pathname.startsWith('/admin/units') ? 'active' : undefined}
+          >
+            <Ruler size={18} /> Units
           </Link>
           <Link
             to="/admin/orders"

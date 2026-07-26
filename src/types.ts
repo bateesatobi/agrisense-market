@@ -1,27 +1,66 @@
 export type ProductKind = 'produce' | 'input';
 
+export type DeliveryMode = 'free' | 'paid';
+export type DeliveryPeriod = '24_hours' | '3_days' | '1_week';
+
+export const DELIVERY_PERIOD_LABELS: Record<DeliveryPeriod, string> = {
+  '24_hours': '24 hours',
+  '3_days': '3 days',
+  '1_week': '1 week',
+};
+
+export type MarketCategory = {
+  id: string;
+  name: string;
+  kind: ProductKind;
+  description: string;
+  active: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt?: string;
+};
+
+export type MarketUnit = {
+  id: string;
+  name: string;
+  symbol: string;
+  description: string;
+  active: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt?: string;
+};
+
 export type Product = {
   id: string;
   kind: ProductKind;
   title: string;
   category: string;
+  categoryId?: string;
   description: string;
-  priceUgx: number;
   /**
-   * List / reference price (Amazon “List Price”).
+   * List / reference price derived from discount %.
    * When higher than priceUgx, cards show strikethrough + % off.
    */
   compareAtPriceUgx?: number;
+  /** Discount percent applied to list price (1–99). */
+  discountPercent?: number;
+  priceUgx: number;
   unit: string;
+  unitId?: string;
   stock: number;
   /** Fallback glyph when no photo URL is available */
   imageEmoji: string;
-  /** Product photos (Amazon-style gallery). Prefer https image URLs. */
+  /** Product photos — https URLs and/or data: URIs */
   images: string[];
+  /** Explicit remote image URLs persisted on the product */
+  imageUrls?: string[];
   seller: string;
   location: string;
   featured?: boolean;
   active: boolean;
+  deliveryMode?: DeliveryMode;
+  deliveryPeriod?: DeliveryPeriod;
   createdAt: string;
   updatedAt: string;
 };
@@ -37,6 +76,11 @@ export type User = {
   password: string;
   createdAt: string;
   active: boolean;
+  area?: string;
+  orderCount?: number;
+  spendUgx?: number;
+  payoutPhone?: string;
+  payoutMethod?: string;
 };
 
 export type OrderStatus =

@@ -3,7 +3,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { AmzPrice } from '../../components/AmzPrice';
 import { ImageGallery } from '../../components/ImageGallery';
 import { Stars, ratingFromId } from '../../components/ProductCard';
-import { formatUgx, useMarket } from '../../store/MarketStore';
+import { useMarket } from '../../store/MarketStore';
+import { DELIVERY_PERIOD_LABELS } from '../../types';
 import { getPriceDisplay } from '../../utils/pricing';
 
 export function ProductDetailPage() {
@@ -31,10 +32,14 @@ export function ProductDetailPage() {
   }
 
   const { rating, reviews } = ratingFromId(product.id);
-  const delivery = product.priceUgx * 1 >= 200000 ? 0 : 15000;
   const deal = getPriceDisplay(product.priceUgx, product.compareAtPriceUgx);
   const maxQty = Math.max(1, Math.min(30, product.stock));
   const safeQty = Math.min(qty, maxQty);
+  const deliveryMode = product.deliveryMode || 'paid';
+  const periodLabel =
+    product.deliveryPeriod && DELIVERY_PERIOD_LABELS[product.deliveryPeriod]
+      ? DELIVERY_PERIOD_LABELS[product.deliveryPeriod]
+      : DELIVERY_PERIOD_LABELS['3_days'];
 
   return (
     <div className="amz-pdp">
@@ -79,6 +84,12 @@ export function ProductDetailPage() {
               <td>{product.location}</td>
             </tr>
             <tr>
+              <td style={{ color: '#565959', paddingRight: 16, paddingBottom: 6 }}>Delivery</td>
+              <td>
+                {deliveryMode === 'free' ? 'Free delivery' : 'Delivered at a fee'} · {periodLabel}
+              </td>
+            </tr>
+            <tr>
               <td style={{ color: '#565959', paddingRight: 16, paddingBottom: 6 }}>Stock</td>
               <td>{product.stock.toLocaleString()} available</td>
             </tr>
@@ -93,14 +104,17 @@ export function ProductDetailPage() {
           size="detail"
         />
         <div className="amz-ship">
-          {delivery === 0 ? 'FREE delivery on large orders' : `Delivery from ${formatUgx(delivery)}`}
+          {deliveryMode === 'free' ? 'FREE delivery' : 'Delivery fee applies'} · Arrives in{' '}
+          {periodLabel}
         </div>
         <div className={product.stock > 0 ? 'stock' : 'oos'}>
           {product.stock > 0
             ? `In stock (${product.stock.toLocaleString()} available)`
             : 'Currently unavailable'}
         </div>
-        <div className="amz-ship">Sold by {product.seller}</div>
+        {product.kind === 'produce' ? (
+          <div className="amz-ship">Sold by {product.seller}</div>
+        ) : null}
 
         {product.stock > 0 ? (
           <label className="amz-qty-label">

@@ -112,3 +112,57 @@ export function AdminModal({ open, title, onClose, children, wide, footer }: Mod
     </div>
   );
 }
+
+type DrawerProps = {
+  open: boolean;
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+  footer?: ReactNode;
+  wide?: boolean;
+};
+
+/** Right-side slide-over for create/edit forms — keeps the table layout undisturbed. */
+export function AdminDrawer({ open, title, onClose, children, footer, wide }: DrawerProps) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div className="admin-drawer-root" role="presentation">
+      <button
+        type="button"
+        className="admin-drawer-backdrop"
+        aria-label="Close"
+        onClick={onClose}
+      />
+      <aside
+        className={`admin-drawer-panel ${wide ? 'wide' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
+        <div className="admin-drawer-head">
+          <h3>{title}</h3>
+          <button type="button" className="admin-modal-close" onClick={onClose}>
+            ✕
+          </button>
+        </div>
+        <div className="admin-drawer-body">{children}</div>
+        {footer ? <div className="admin-drawer-footer">{footer}</div> : null}
+      </aside>
+    </div>
+  );
+}

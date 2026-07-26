@@ -1,5 +1,9 @@
 /** AgriSense market API client — talks to Agrobackend FastAPI. */
 import type {
+  DeliveryMode,
+  DeliveryPeriod,
+  MarketCategory,
+  MarketUnit,
   Order,
   OrderStatus,
   PaymentMethod,
@@ -8,6 +12,7 @@ import type {
   SessionUser,
   User,
 } from '../types';
+import { discountPercentFromPrices, listPriceFromDiscount } from '../utils/pricing';
 
 const API_URL =
   (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ||
@@ -43,18 +48,46 @@ type ApiProduct = {
   kind: string;
   title: string;
   category: string;
+  category_id?: string | null;
   description: string;
   price_ugx: number;
   compare_at_price_ugx?: number | null;
+  discount_percent?: number | null;
   unit: string;
+  unit_id?: string | null;
   stock: number;
   image_emoji?: string | null;
   images?: string[];
+  image_urls?: string[];
   seller_name?: string;
   seller_id?: string;
   location: string;
   featured?: boolean;
   active: boolean;
+  delivery_mode?: string | null;
+  delivery_period?: string | null;
+  created_at: string;
+  updated_at?: string | null;
+};
+
+type ApiCategory = {
+  id: string;
+  name: string;
+  kind: string;
+  description?: string;
+  active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at?: string | null;
+};
+
+type ApiUnit = {
+  id: string;
+  name: string;
+  symbol: string;
+  description?: string;
+  active: boolean;
+  sort_order: number;
   created_at: string;
   updated_at?: string | null;
 };
@@ -103,9 +136,12 @@ type ApiAdminUser = {
   email?: string | null;
   role: string;
   active: boolean;
+  area?: string | null;
   created_at?: string | null;
   order_count?: number;
   spend_ugx?: number;
+  payout_phone?: string | null;
+  payout_method?: string | null;
 };
 
 async function request<T>(
@@ -139,22 +175,45 @@ async function request<T>(
 }
 
 export function mapProduct(p: ApiProduct): Product {
+  const imageUrls = Array.isArray(p.image_urls) ? p.image_urls.filter(Boolean) : [];
+  const images = Array.isArray(p.images) ? p.images.filter(Boolean) : imageUrls;
+  const compareAt = p.compare_at_price_ugx ?? undefined;
+  const discountPercent =
+    p.discount_percent != null && p.discount_percent > 0
+      ? p.discount_percent
+      : discountPercentFromPrices(p.price_ugx, compareAt) || undefined;
+  const deliveryMode =
+    p.delivery_mode === 'free' || p.delivery_mode === 'paid'
+      ? (p.delivery_mode as DeliveryMode)
+      : 'paid';
+  const deliveryPeriod =
+    p.delivery_period === '24_hours' ||
+    p.delivery_period === '3_days' ||
+    p.delivery_period === '1_week'
+      ? (p.delivery_period as DeliveryPeriod)
+      : '3_days';
   return {
     id: p.id,
     kind: (p.kind as ProductKind) || 'produce',
     title: p.title,
     category: p.category,
+    categoryId: p.category_id || undefined,
     description: p.description || '',
     priceUgx: p.price_ugx,
-    compareAtPriceUgx: p.compare_at_price_ugx ?? undefined,
+    compareAtPriceUgx: compareAt,
+    discountPercent,
     unit: p.unit,
+    unitId: p.unit_id || undefined,
     stock: p.stock,
     imageEmoji: p.image_emoji || '🛒',
-    images: Array.isArray(p.images) ? p.images : [],
+    images,
+    imageUrls,
     seller: p.seller_name || '',
     location: p.location || '',
     featured: !!p.featured,
     active: !!p.active,
+    deliveryMode,
+    deliveryPeriod,
     createdAt: typeof p.created_at === 'string' ? p.created_at : new Date(p.created_at).toISOString(),
     updatedAt: p.updated_at
       ? typeof p.updated_at === 'string'
@@ -163,6 +222,42 @@ export function mapProduct(p: ApiProduct): Product {
       : typeof p.created_at === 'string'
         ? p.created_at
         : new Date().toISOString(),
+  };
+}
+
+function mapCategory(c: ApiCategory): MarketCategory {
+  return {
+    id: c.id,
+    name: c.name,
+    kind: (c.kind as ProductKind) || 'produce',
+    description: c.description || '',
+    active: !!c.active,
+    sortOrder: c.sort_order ?? 0,
+    createdAt:
+      typeof c.created_at === 'string' ? c.created_at : new Date(c.created_at).toISOString(),
+    updatedAt: c.updated_at
+      ? typeof c.updated_at === 'string'
+        ? c.updated_at
+        : new Date(c.updated_at).toISOString()
+      : undefined,
+  };
+}
+
+function mapUnit(u: ApiUnit): MarketUnit {
+  return {
+    id: u.id,
+    name: u.name,
+    symbol: u.symbol,
+    description: u.description || '',
+    active: !!u.active,
+    sortOrder: u.sort_order ?? 0,
+    createdAt:
+      typeof u.created_at === 'string' ? u.created_at : new Date(u.created_at).toISOString(),
+    updatedAt: u.updated_at
+      ? typeof u.updated_at === 'string'
+        ? u.updated_at
+        : new Date(u.updated_at).toISOString()
+      : undefined,
   };
 }
 
@@ -229,6 +324,11 @@ function mapAdminUser(u: ApiAdminUser): User {
         : new Date(u.created_at).toISOString()
       : new Date().toISOString(),
     active: u.active,
+    area: u.area || undefined,
+    orderCount: u.order_count,
+    spendUgx: u.spend_ugx,
+    payoutPhone: u.payout_phone || undefined,
+    payoutMethod: u.payout_method || undefined,
   };
 }
 
@@ -290,6 +390,11 @@ export const marketApi = {
   async adminUsers(token: string) {
     const data = await request<ApiAdminUser[]>('/market/admin/users', { token });
     return data.map(mapAdminUser);
+  },
+
+  async getAdminUser(token: string, id: string) {
+    const data = await request<ApiAdminUser>(`/market/admin/users/${id}`, { token });
+    return mapAdminUser(data);
   },
 
   async quote(
@@ -360,24 +465,41 @@ export const marketApi = {
     product: Omit<Product, 'createdAt' | 'updatedAt'> & { createdAt?: string },
     isNew: boolean,
   ) {
+    const allImages = product.images || [];
+    const imageUrls = allImages.filter((img) => /^https?:\/\//i.test(img));
+    const imagesBase64 = allImages.filter(
+      (img) => img.startsWith('data:') || (!img.startsWith('http') && img.length > 100),
+    );
+    const discountPercent =
+      product.discountPercent && product.discountPercent > 0
+        ? Math.min(99, Math.round(product.discountPercent))
+        : 0;
+    const compareAt =
+      discountPercent > 0
+        ? listPriceFromDiscount(product.priceUgx, discountPercent)
+        : undefined;
     const body = {
       kind: product.kind,
       title: product.title,
       category: product.category,
+      category_id: product.categoryId || undefined,
       description: product.description,
       price_ugx: product.priceUgx,
-      compare_at_price_ugx: product.compareAtPriceUgx,
+      compare_at_price_ugx: compareAt ?? null,
+      discount_percent: discountPercent,
       unit: product.unit,
+      unit_id: product.unitId || undefined,
       stock: product.stock,
       image_emoji: product.imageEmoji,
-      images_base64: (product.images || []).filter(
-        (img) => img.startsWith('data:') || (!img.startsWith('http') && img.length > 100),
-      ),
+      images_base64: imagesBase64,
+      image_urls: imageUrls,
       location: product.location,
       featured: product.featured,
       active: product.active,
+      delivery_mode: product.deliveryMode || 'paid',
+      delivery_period: product.deliveryPeriod || '3_days',
+      delivery_available: true,
     };
-    // If images look like URLs only, still send empty — backend keeps existing on patch
     if (isNew) {
       const created = await request<ApiProduct>('/market/products', {
         method: 'POST',
@@ -391,7 +513,8 @@ export const marketApi = {
       token,
       body: JSON.stringify({
         ...body,
-        images_base64: body.images_base64.length ? body.images_base64 : undefined,
+        images_base64: imagesBase64.length ? imagesBase64 : undefined,
+        image_urls: imageUrls,
       }),
     });
     return mapProduct(patched);
@@ -399,6 +522,95 @@ export const marketApi = {
 
   async deleteProduct(token: string, id: string) {
     await request(`/market/products/${id}`, { method: 'DELETE', token });
+  },
+
+  async getProduct(id: string, includeInactive = false) {
+    const q = includeInactive ? '?include_inactive=true' : '';
+    const data = await request<ApiProduct>(`/market/products/${id}${q}`);
+    return mapProduct(data);
+  },
+
+  async listCategories(params?: { kind?: ProductKind; includeInactive?: boolean }) {
+    const q = new URLSearchParams({ limit: '500' });
+    if (params?.kind) q.set('kind', params.kind);
+    if (params?.includeInactive) q.set('include_inactive', 'true');
+    const data = await request<{ items: ApiCategory[]; total: number }>(
+      `/market/categories?${q.toString()}`,
+    );
+    return data.items.map(mapCategory);
+  },
+
+  async upsertCategory(
+    token: string,
+    category: Omit<MarketCategory, 'createdAt' | 'updatedAt'> & { createdAt?: string },
+    isNew: boolean,
+  ) {
+    const body = {
+      name: category.name,
+      kind: category.kind,
+      description: category.description,
+      active: category.active,
+      sort_order: category.sortOrder,
+    };
+    if (isNew) {
+      const created = await request<ApiCategory>('/market/admin/categories', {
+        method: 'POST',
+        token,
+        body: JSON.stringify(body),
+      });
+      return mapCategory(created);
+    }
+    const patched = await request<ApiCategory>(`/market/admin/categories/${category.id}`, {
+      method: 'PATCH',
+      token,
+      body: JSON.stringify(body),
+    });
+    return mapCategory(patched);
+  },
+
+  async deleteCategory(token: string, id: string) {
+    await request(`/market/admin/categories/${id}`, { method: 'DELETE', token });
+  },
+
+  async listUnits(params?: { includeInactive?: boolean }) {
+    const q = new URLSearchParams({ limit: '500' });
+    if (params?.includeInactive) q.set('include_inactive', 'true');
+    const data = await request<{ items: ApiUnit[]; total: number }>(
+      `/market/units?${q.toString()}`,
+    );
+    return data.items.map(mapUnit);
+  },
+
+  async upsertUnit(
+    token: string,
+    unit: Omit<MarketUnit, 'createdAt' | 'updatedAt'> & { createdAt?: string },
+    isNew: boolean,
+  ) {
+    const body = {
+      name: unit.name,
+      symbol: unit.symbol,
+      description: unit.description,
+      active: unit.active,
+      sort_order: unit.sortOrder,
+    };
+    if (isNew) {
+      const created = await request<ApiUnit>('/market/admin/units', {
+        method: 'POST',
+        token,
+        body: JSON.stringify(body),
+      });
+      return mapUnit(created);
+    }
+    const patched = await request<ApiUnit>(`/market/admin/units/${unit.id}`, {
+      method: 'PATCH',
+      token,
+      body: JSON.stringify(body),
+    });
+    return mapUnit(patched);
+  },
+
+  async deleteUnit(token: string, id: string) {
+    await request(`/market/admin/units/${id}`, { method: 'DELETE', token });
   },
 
   async updateOrderStatus(token: string, id: string, status: OrderStatus) {

@@ -3,7 +3,7 @@ import { Star } from 'lucide-react';
 import { AmzPrice, DealBadge } from './AmzPrice';
 import { useMarket } from '../store/MarketStore';
 import { getPrimaryImage } from '../utils/productImages';
-import type { Product } from '../types';
+import { DELIVERY_PERIOD_LABELS, type Product } from '../types';
 
 function ratingFromId(id: string) {
   let h = 0;
@@ -33,6 +33,11 @@ export function ProductCard({ product }: { product: Product }) {
   const { addToCart } = useMarket();
   const { rating, reviews } = ratingFromId(product.id);
   const cover = getPrimaryImage(product);
+  const deliveryMode = product.deliveryMode || 'paid';
+  const periodLabel =
+    product.deliveryPeriod && DELIVERY_PERIOD_LABELS[product.deliveryPeriod]
+      ? DELIVERY_PERIOD_LABELS[product.deliveryPeriod]
+      : DELIVERY_PERIOD_LABELS['3_days'];
 
   return (
     <article className="amz-card">
@@ -57,11 +62,17 @@ export function ProductCard({ product }: { product: Product }) {
           unit={product.unit}
           size="card"
         />
+        <div className="amz-card-meta">
+          <span className={`amz-delivery-pill ${deliveryMode === 'free' ? 'is-free' : 'is-paid'}`}>
+            {deliveryMode === 'free' ? 'Free delivery' : 'Delivery fee applies'}
+          </span>
+          <span className="amz-delivery-period">Arrives in {periodLabel}</span>
+        </div>
         <div className="amz-prime">
           {product.kind === 'produce' ? 'Farm-fresh produce' : 'Verified farm input'}
         </div>
         <div className="amz-ship">
-          Ships to {product.location} · {product.stock > 0 ? 'In stock' : 'Out of stock'}
+          Ships from {product.location || 'Uganda'} · {product.stock > 0 ? 'In stock' : 'Out of stock'}
         </div>
         <button
           type="button"
